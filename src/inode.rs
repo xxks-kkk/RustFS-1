@@ -2,17 +2,22 @@ use time;
 use time::Timespec;
 use std::mem;
 use std::ptr;
+// semantically equivalent to C's memcpy
 use std::ptr::copy_nonoverlapping;
 
 const PAGE_SIZE: usize = 4096;
 const LIST_SIZE: usize = 256;
 
+// [u8; PAGE_SIZE] is array type
+// type keyword is for alias: https://doc.rust-lang.org/book/type-aliases.html
+// Box<T> allows you to store data on the heap rather than the stack.
 type Page = Box<([u8; PAGE_SIZE])>;
 type Entry = Page;
 type EntryList = TList<Entry>; // TODO: Option<TList> for lazy loading
 type DoubleEntryList = TList<EntryList>;
 pub type TList<T> = Box<([Option<T>; LIST_SIZE])>;
 
+// ceiling of an integer division (e.g. ceil(9/8) = 2)
 #[inline(always)]
 fn ceil_div(x: usize, y: usize) -> usize {
   return (x + y - 1) / y;
@@ -21,6 +26,7 @@ fn ceil_div(x: usize, y: usize) -> usize {
 #[inline(always)]
 pub fn create_tlist<T>() -> TList<T> {
   let mut list: TList<T> = Box::new(unsafe { mem::uninitialized() });
+  // initialize the memory
   for x in list.iter_mut() { unsafe { ptr::write(x, None); } };
   list
 }
@@ -28,6 +34,7 @@ pub fn create_tlist<T>() -> TList<T> {
 pub struct Inode {
   single: EntryList, // Box<([Option<Page>, ..256])>
   double: DoubleEntryList, // Box<[Option<Box<([Option<Page>>, ..256])>, ..256]
+  // The size of the file (usize: the pointer-sized unsigned integer type)
   size: usize,
 
   mod_time: Timespec,
@@ -38,7 +45,26 @@ pub struct Inode {
 impl Inode {
   pub fn new() -> Inode {
     let time_now = time::get_time();
-
+//    i n o d e
+//  +--------------+
+//  |    single    |
+//  |   (direct    |
+//  |  pointers)   |
+//  |              |
+//  +--------------+
+//  |    double    |
+//  |  (indirect   |
+//  |  pointers)   |
+//  |              |
+//  +--------------+
+//  |     size     |
+//  +--------------+
+//  |   mod_time   |
+//  +--------------+
+//  | access_time  |
+//  +--------------+
+//  | create_time  |
+//  +--------------+
     Inode {
       single: create_tlist(),
       double: create_tlist(),
@@ -50,8 +76,12 @@ impl Inode {
     }
   }
 
+  // get the page or allocate the page for the specified page number
   fn get_or_alloc_page<'a>(&'a mut self, num: usize) -> &'a mut Page {
     if num >= LIST_SIZE + LIST_SIZE * LIST_SIZE {
+      // Since we have LIST_SIZE direct pointers, and LIST_SIZE indirect pointers and each
+      // indirect pointer pointing to LIST_SIZE direct pointers. Thus, the maximum file size
+      // is LIST_SIZE + LIST_SIZE * LIST_SIZE blocks.
       panic!("Maximum file size exceeded!")
     };
 
@@ -62,6 +92,9 @@ impl Inode {
     } else {
       // if the page num is in the doubly-indirect list. We allocate a new
       // entry list where necessary (*entry_list = ...)
+      // To understand this, check https://github.com/xxks-kkk/RustFS-1/wiki/inode.rs#doubleentrylist
+      // Essentially, indirect pointers and the blocks (contain the direct pointers) that
+      // indirect pointers pointing to is implemented as a 2D array (i.e., matrix).
       let double_entry = num - LIST_SIZE;
       let slot = double_entry / LIST_SIZE;
       let entry_list = &mut self.double[slot];
@@ -76,13 +109,16 @@ impl Inode {
     };
 
     match *page {
-      None => *page = Some(Box::new([0u8; 4096])),
+      // 0u8: 0 stored as 8-bit unsigned integer type (i.e., u8), which is 1 byte
+      // Thus, the page size here is 4KB.
+      None => *page = Some(Box::new([0u8; PAGE_SIZE])),
       _ => { /* Do Nothing */ }
     }
 
     page.as_mut().unwrap()
   }
 
+  // get the page for the specified page number
   fn get_page<'a>(&'a self, num: usize) -> &'a Option<Page> {
     if num >= LIST_SIZE + LIST_SIZE * LIST_SIZE {
       panic!("Page does not exist.")

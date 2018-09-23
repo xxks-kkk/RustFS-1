@@ -54,3 +54,4 @@ Session.vim
 *.hex
 target
 Cargo.lock
+.idea
