@@ -181,6 +181,7 @@ impl Inode {
     written
   }
 
+  // read data.len() bytes starting at offset into data and return the number of bytes we read
   pub fn read(&self, offset: usize, data: &mut [u8]) -> usize {
     let mut read = 0;
     let mut block_offset = offset % PAGE_SIZE; // offset from first block
@@ -237,6 +238,10 @@ mod tests {
   use self::rand::random;
   use time;
 
+  // (0..size): is std::ops::range: https://doc.rust-lang.org/std/ops/struct.Range.html
+  // map() is a way to update each value in the range: https://doc.rust-lang.org/book/2018-edition/ch13-02-iterators.html
+  // map().collect(): calling the map method to create a new iterator and then calling the collect
+  // method to consume the new iterator and create a vector.
   fn rand_array(size: usize) -> Vec<u8> {
     (0..size).map(|_| random::<u8>()).collect()
   }
