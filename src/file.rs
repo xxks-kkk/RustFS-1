@@ -1,7 +1,13 @@
 extern crate time;
 
 use std::collections::HashMap;
+//A single-threaded reference-counting pointer: https://doc.rust-lang.org/std/rc/struct.Rc.html
+// https://doc.rust-lang.org/book/2018-edition/ch15-04-rc.html
 use std::rc::Rc;
+// https://doc.rust-lang.org/book/2018-edition/ch15-05-interior-mutability.html
+// https://doc.rust-lang.org/std/cell/
+// Cell<T>:  implements interior mutability by moving values in and out of the Cell<T>
+// To use references instead of values, one must use the RefCell<T> type, acquiring a write lock before mutating
 use std::cell::{Cell, RefCell};
 use inode::{Inode};
 use self::File::{DataFile, Directory};
@@ -9,6 +15,7 @@ use self::File::{DataFile, Directory};
 pub type RcDirContent<'r> = Rc<RefCell<Box<DirectoryContent<'r>>>>;
 pub type RcInode = Rc<RefCell<Box<Inode>>>;
 
+// About clone: https://doc.rust-lang.org/book/2018-edition/appendix-03-derivable-traits.html#clone-and-copy-for-duplicating-values
 // File is a thing wrapper around Inodes and Directories. The whole point is to
 // provide a layer of indirection. FileHandle's and Directory entries, then,
 // point to these guys instead of directly to Inodes/Directories
@@ -63,6 +70,7 @@ impl<'r> File<'r> {
 
   pub fn get_dir_rc<'a>(&'a self) -> &'a RcDirContent<'r> {
     match self {
+      // Understanding ref: https://github.com/rust-lang/rust-by-example/issues/390#issuecomment-69635169
       &Directory(ref rc) => rc,
       _ => panic!("not a directory")
     }
