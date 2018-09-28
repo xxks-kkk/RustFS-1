@@ -41,6 +41,8 @@ impl Inode {
 
     Inode {
       single: create_tlist(),
+      //How does this create an indirect list?
+      //Ok so it creates a tlist unitialized, then at each slot, when asked, it would allocate a create_tlist()
       double: create_tlist(),
       size: 0,
 
@@ -63,23 +65,27 @@ impl Inode {
       // if the page num is in the doubly-indirect list. We allocate a new
       // entry list where necessary (*entry_list = ...)
       let double_entry = num - LIST_SIZE;
+      //1000-256
       let slot = double_entry / LIST_SIZE;
+      //indirect slot 3 ish
       let entry_list = &mut self.double[slot];
 
       match *entry_list {
-        None => *entry_list = Some(create_tlist()),
+          //Some(create_tlist())?? Oh, because the type I believe it is making it an Option
+        None => *entry_list = Some(create_tlist()), //doesnt exist, put a tlist in that indirect block
         _ => { /* Do nothing */ }
       }
-
+      //find the actual entry .
+      //return mutable page. Page is 4096 bytes.
       let entry_offset = double_entry % LIST_SIZE;
       &mut entry_list.as_mut().unwrap()[entry_offset]
     };
-
+    //now that page location set, allocate memory at that location on the heap
     match *page {
       None => *page = Some(Box::new([0u8; 4096])),
       _ => { /* Do Nothing */ }
     }
-
+    //.unwrap??
     page.as_mut().unwrap()
   }
 

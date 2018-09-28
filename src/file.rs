@@ -2,10 +2,16 @@ extern crate time;
 
 use std::collections::HashMap;
 use std::rc::Rc;
+//RefCell provides with references, Cell with values.alloc
+//RefCell may panic
+//cell.borrow_mut().unwrap()
+//Cell will never let you get a pointer to the value, RefCell would.
 use std::cell::{Cell, RefCell};
 use inode::{Inode};
+//self??
 use self::File::{DataFile, Directory};
 
+//Rc is a shared pointer basically, RefCell has reference of underlying data on the cheap
 pub type RcDirContent<'r> = Rc<RefCell<Box<DirectoryContent<'r>>>>;
 pub type RcInode = Rc<RefCell<Box<Inode>>>;
 
@@ -37,6 +43,7 @@ pub enum Whence {
 }
 
 impl<'r> File<'r> {
+    //???? _parent,
   pub fn new_dir(_parent: Option<File<'r>>) -> File<'r> {
     let content = Box::new(DirectoryContent { entries: HashMap::new() });
     let rc = Rc::new(RefCell::new(content));
@@ -62,6 +69,9 @@ impl<'r> File<'r> {
   }
 
   pub fn get_dir_rc<'a>(&'a self) -> &'a RcDirContent<'r> {
+      //match keyword on self?
+      //& Directory(ref rc?)
+
     match self {
       &Directory(ref rc) => rc,
       _ => panic!("not a directory")

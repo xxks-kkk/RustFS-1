@@ -1,13 +1,13 @@
 use file::File;
 use file::File::Directory;
 
+//Look up more about 'r, 'a, etc
 pub trait DirectoryHandle<'r>: Sized {
   fn is_dir(&self) -> bool;
   fn insert(&mut self, name: &'r str, file: Self);
   fn remove(&mut self, name: &'r str);
   fn get(&self, name: &'r str) -> Option<Self>;
 }
-
 impl<'r> DirectoryHandle<'r> for File<'r> {
   fn is_dir(&self) -> bool {
     match self {
@@ -33,7 +33,7 @@ impl<'r> DirectoryHandle<'r> for File<'r> {
     let content = rc.borrow();
     match content.entries.get(&name) {
       None => None,
-      Some(ref file) => Some((*file).clone()) // It's RC
+      Some(ref file) => Some((*file).clone())
     }
   }
 }
