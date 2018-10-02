@@ -175,9 +175,22 @@ impl Inode {
         &Some(ref pg) => pg
       };
 
+
+      //getting a slice of the underlying data (a reference to underlying array and a len),
+      // so that this will stay synced upon changes to the underlying data ..
+      // Why is using a slice here important?  Rust's use of slices supposedly solves
+      // the problem where when you declare slice to be somewhere or have some data,
+      // then the underlying data is changed, you are left with a reference or state
+      // that no longer matches the memory. Hence, using this var later can be very problematic.
+
+      // This is saying the underlying data can be changed but the var slice cannot
+      // making it mutable bc of the copy_nonoverlapping method ..
       let slice = &mut data[read..(read + num_bytes)];
       // read += slice.copy_from(page.slice(block_offset,
       // block_offset + num_bytes));
+
+
+      // ..why the copy though? and why unsafe ..
       unsafe {
         // copy_from is extremely slow! use copy_memory instead
         let src = page[block_offset..(block_offset + num_bytes)].as_ptr();

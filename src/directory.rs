@@ -1,7 +1,6 @@
 use file::File;
 use file::File::Directory;
 
-//Look up more about 'r, 'a, etc
 pub trait DirectoryHandle<'r>: Sized {
   fn is_dir(&self) -> bool;
   fn insert(&mut self, name: &'r str, file: Self);

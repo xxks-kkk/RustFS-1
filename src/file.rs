@@ -11,13 +11,26 @@ use inode::{Inode};
 //self??
 use self::File::{DataFile, Directory};
 
-//Rc is a shared pointer basically, RefCell has reference of underlying data on the cheap
+//Rc is a shared pointer basically, RefCell has reference of underlying data on the heap
 pub type RcDirContent<'r> = Rc<RefCell<Box<DirectoryContent<'r>>>>;
 pub type RcInode = Rc<RefCell<Box<Inode>>>;
 
 // File is a thing wrapper around Inodes and Directories. The whole point is to
 // provide a layer of indirection. FileHandle's and Directory entries, then,
 // point to these guys instead of directly to Inodes/Directories
+
+// deriving Clone allows for copying underlying data on the heap
+// Rust never automatically creates deep copies.  automatic copies gives
+// very poor performance. So this derive clone allows for deep copying the
+// data on the heap. for example, the following would allow for s1 and s2 to
+// be printed and referenced. If the .clone() was not there, then it would give error because
+// Rust's ownership concept ensures memory safety by preventing double free problem
+// that would occur when both s1 and s2 go out of scope.
+// let s1 = String::from("hello");
+// let s2 = s1.clone();
+//
+// println!("s1 = {}, s2 = {}", s1, s2);
+// `
 #[derive(Clone)]
 pub enum File<'r> {
   DataFile(RcInode),
@@ -43,7 +56,6 @@ pub enum Whence {
 }
 
 impl<'r> File<'r> {
-    //???? _parent,
   pub fn new_dir(_parent: Option<File<'r>>) -> File<'r> {
     let content = Box::new(DirectoryContent { entries: HashMap::new() });
     let rc = Rc::new(RefCell::new(content));
@@ -69,9 +81,6 @@ impl<'r> File<'r> {
   }
 
   pub fn get_dir_rc<'a>(&'a self) -> &'a RcDirContent<'r> {
-      //match keyword on self?
-      //& Directory(ref rc?)
-
     match self {
       &Directory(ref rc) => rc,
       _ => panic!("not a directory")

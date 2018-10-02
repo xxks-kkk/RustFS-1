@@ -61,7 +61,7 @@ impl<'r> Proc<'r> {
         }
       }
     };
-
+    //if opening file, insert file descriptor to process's fd list with new handle
     match file {
       DataFile(_) => {
         let fd = Proc::extract_fd(&self.fds.pop());
